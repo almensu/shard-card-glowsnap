@@ -10,7 +10,21 @@ GlowSnap is a high-end "Code/Text to Image" utility designed for technical creat
 chmod +x start.sh
 ./start.sh
 ```
-*提示：`start.sh` 会自动检测并关闭占用 3000 端口的进程，确保应用始终运行在 `http://localhost:3000` 以支持自动化脚本。*
+*提示：`start.sh` 会自动检测并关闭占用 3000 端口的进程，并确保所有依赖项已正确安装。*
+
+---
+
+## 🎨 Tailwind CSS 配置说明 (LLM Guidance)
+
+如果您在浏览器控制台中看到 `cdn.tailwindcss.com should not be used in production` 警告，这是因为旧版本使用了 CDN。本项目现已切换为 **PostCSS 编译模式**。
+
+### 给 LLM 的开发建议:
+1. **依赖安装**: 确保 `package.json` 中包含 `tailwindcss`, `postcss`, `autoprefixer`。
+2. **样式修改**: 请直接修改 `index.css` 或在 React 组件中使用 Tailwind Utility classes。不要在 `index.html` 中重新引入 CDN 脚本。
+3. **配置文件**: 
+   - `tailwind.config.js`: 定义了内容扫描路径和字体配置。
+   - `postcss.config.js`: 处理 CSS 编译插件。
+4. **编译流程**: 运行 `npm run dev` 时，Vite 会自动调用 PostCSS 处理样式，实时更新 `index.css`。
 
 ---
 
@@ -42,4 +56,5 @@ chmod +x download_png.sh
 - **Accent Light**: 点击画布任意位置调整光源。
 - **2x Retina**: 自动导出双倍分辨率 PNG。
 - **Theme Sync**: 支持 JSON 导入导出与 CLI 参数同步。
-- **Port Cleanup**: `start.sh` 自动管理端口占用，无需手动 `kill`。
+- **Port Cleanup**: `start.sh` 自动管理端口占用。
+- **Production-Ready CSS**: 使用本地 PostCSS 编译，避免 CDN 警告。
