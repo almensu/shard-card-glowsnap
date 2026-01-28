@@ -5,15 +5,13 @@ import { PreviewWindow } from './components/PreviewWindow';
 import { CommandBar } from './components/CommandBar';
 import { AppSettings, DEFAULT_SETTINGS, SavedTheme } from './types';
 import { toPng } from 'html-to-image';
-import { Download, Sparkles, Layout, Terminal as TerminalIcon, Sun, Moon } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { Download, Layout, Terminal as TerminalIcon, Sun, Moon } from 'lucide-react';
 
 const THEMES_STORAGE_KEY = 'glowsnap_saved_themes';
 
 const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isExporting, setIsExporting] = useState(false);
-  const [isAIThinking, setIsAIThinking] = useState(false);
   const [isCommandBarOpen, setIsCommandBarOpen] = useState(false);
   const [previewBg, setPreviewBg] = useState<'dark' | 'light'>('dark');
   const [savedThemes, setSavedThemes] = useState<SavedTheme[]>(() => {
@@ -53,9 +51,6 @@ const App: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       
-      // If triggered by URL, we could optionally close the window here
-      // if (new URLSearchParams(window.location.search).get('autoclose') === 'true') window.close();
-
     } catch (err) {
       console.error('Export failed', err);
     } finally {
@@ -63,32 +58,14 @@ const App: React.FC = () => {
     }
   }, [previewRef]);
 
-  const handleAISuggestion = useCallback(async () => {
-    setIsAIThinking(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are a professional technical writer. Refine and beautify the following markdown content. Return ONLY refined markdown.\n\nContent: ${settings.content}`,
-      });
-      const text = response.text;
-      if (text) setSettings(prev => ({ ...prev, content: text }));
-    } catch (err) {
-      console.error('AI refinement failed', err);
-    } finally {
-      setIsAIThinking(false);
-    }
-  }, [settings.content]);
-
   const executeCommand = useCallback((cmd: string): string | null => {
     const parts = cmd.trim().split(/\s+/);
     const action = parts[0].toLowerCase();
 
     try {
-      if (action === 'help') return "Commands: config [--p val] [--r val] [--f val] [--a val] [--s hex] [--e hex] [--c hex] [--cr val] [--cx val] [--cy val], theme [dark|light|obsidian], ai, export, reset";
+      if (action === 'help') return "Commands: config [--p val] [--r val] [--f val] [--a val] [--s hex] [--e hex] [--c hex] [--cr val] [--cx val] [--cy val], theme [dark|light|obsidian], export, reset";
       if (action === 'reset') { setSettings(DEFAULT_SETTINGS); return null; }
       if (action === 'export') { handleExport(); return null; }
-      if (action === 'ai') { handleAISuggestion(); return null; }
       
       if (action === 'config' || action === 'set') {
         const updates: Partial<AppSettings> = {};
@@ -120,20 +97,17 @@ const App: React.FC = () => {
       }
       return "Command not found.";
     } catch (e) { return "Execution Error."; }
-  }, [handleExport, handleAISuggestion, settings.colorCPosition]);
+  }, [handleExport, settings.colorCPosition]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.toString() === '') return;
 
     const updates: Partial<AppSettings> = {};
-    
-    // Support both long and short (CLI style) parameter names
     const getParam = (long: string, short: string) => params.get(long) || params.get(short);
 
     if (params.has('content')) {
       try { 
-        // Try decoding as Base64 first for script support
         updates.content = decodeURIComponent(escape(atob(params.get('content')!)));
       } catch (e) {
         updates.content = params.get('content')!;
@@ -203,15 +177,6 @@ const App: React.FC = () => {
         />
 
         <div className="mt-8 space-y-3">
-          <button
-            onClick={handleAISuggestion}
-            disabled={isAIThinking}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white rounded-xl transition-all font-medium shadow-lg shadow-indigo-500/20"
-          >
-            <Sparkles className={`w-4 h-4 ${isAIThinking ? 'animate-spin' : ''}`} />
-            {isAIThinking ? 'Refining...' : 'AI Refine Text'}
-          </button>
-          
           <button
             onClick={handleExport}
             disabled={isExporting}

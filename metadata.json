@@ -1,5 +1,5 @@
 {
   "name": "GlowSnap: Markdown & Code Beautifier",
-  "description": "A high-end code and markdown-to-image generator with customizable gradients, terminal styles, and AI-powered text refinement.",
+  "description": "A high-end code and markdown-to-image generator with customizable gradients and terminal styles.",
   "requestFramePermissions": []
 }

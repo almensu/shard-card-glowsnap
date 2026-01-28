@@ -42,5 +42,4 @@ chmod +x download_png.sh
 - **Accent Light**: 点击画布任意位置调整光源。
 - **2x Retina**: 自动导出双倍分辨率 PNG。
 - **Theme Sync**: 支持 JSON 导入导出与 CLI 参数同步。
-- **AI Refine**: 集成 Gemini 模型一键润色技术文档。
 - **Port Cleanup**: `start.sh` 自动管理端口占用，无需手动 `kill`。

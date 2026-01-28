@@ -11,7 +11,6 @@
     "start": "bash start.sh"
   },
   "dependencies": {
-    "@google/genai": "^1.38.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.463.0",
     "react": "^19.0.0",
