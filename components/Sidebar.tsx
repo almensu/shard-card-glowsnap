@@ -1,10 +1,10 @@
 
 import React, { useState, useRef } from 'react';
 import { AppSettings, SavedTheme } from '../types';
-import { 
-  Sliders, Palette, Terminal, Copy, Check, Share2, 
-  Code, Zap, Heart, Trash2, FileJson, Plus, 
-  Download, Upload, FileDown 
+import {
+  Sliders, Palette, Terminal, Copy, Check, Share2,
+  Code, Zap, Heart, Trash2, FileJson, Plus,
+  Download, Upload, FileDown, Image as ImageIcon, Type
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -18,6 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ settings, setSettings, savedTh
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [newThemeName, setNewThemeName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const update = (key: keyof AppSettings, val: any) => {
     setSettings(prev => ({ ...prev, [key]: val }));
@@ -107,18 +108,125 @@ export const Sidebar: React.FC<SidebarProps> = ({ settings, setSettings, savedTh
     e.target.value = '';
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      update('imageData', dataUrl);
+      update('mode', 'image');
+    };
+    reader.readAsDataURL(file);
+    // Reset input
+    e.target.value = '';
+  };
+
+  const handleModeChange = (mode: 'markdown' | 'image') => {
+    update('mode', mode);
+  };
+
+  const clearImage = () => {
+    update('imageData', undefined);
+  };
+
   return (
     <div className="space-y-8 text-slate-300 pb-10">
       {/* Hidden File Input for Import */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept=".json" 
-        className="hidden" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".json"
+        className="hidden"
+      />
+      {/* Hidden File Input for Image Upload */}
+      <input
+        type="file"
+        ref={imageInputRef}
+        onChange={handleImageUpload}
+        accept="image/*"
+        className="hidden"
       />
 
-      {/* Content Section */}
+      {/* Mode Selection Section */}
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-4 h-4 text-yellow-400" />
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Mode</h2>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleModeChange('markdown')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+              settings.mode === 'markdown'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            <Type className="w-4 h-4" />
+            Markdown
+          </button>
+          <button
+            onClick={() => handleModeChange('image')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+              settings.mode === 'image'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            Image
+          </button>
+        </div>
+      </section>
+
+      {/* Image Upload Section - Only show in image mode */}
+      {settings.mode === 'image' && (
+        <section className="space-y-3 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-cyan-400" />
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Image</h2>
+            </div>
+            {settings.imageData && (
+              <button
+                onClick={clearImage}
+                className="text-xs text-rose-400 hover:text-rose-300 transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            className="w-full py-8 px-4 border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-lg text-slate-400 hover:text-blue-400 transition-all flex flex-col items-center gap-2"
+          >
+            <ImageIcon className="w-8 h-8" />
+            <span className="text-sm">{settings.imageData ? 'Change Image' : 'Upload Image'}</span>
+            <span className="text-xs opacity-50">PNG, JPG, GIF, WebP</span>
+          </button>
+          {settings.imageData && (
+            <div className="mt-2 rounded-lg overflow-hidden border border-slate-700">
+              <img
+                src={settings.imageData}
+                alt="Preview"
+                className="w-full h-auto max-h-32 object-contain bg-slate-900"
+              />
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Content Section - Only show in markdown mode */}
+      {settings.mode === 'markdown' && (
       <section>
         <div className="flex items-center gap-2 mb-3">
           <Terminal className="w-4 h-4 text-blue-400" />
@@ -131,6 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ settings, setSettings, savedTh
           className="w-full h-40 bg-slate-800/50 border border-slate-700 rounded-lg p-3 text-sm mono focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
         />
       </section>
+      )}
 
       {/* Layout Section */}
       <section className="space-y-4">
