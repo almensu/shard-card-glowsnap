@@ -20,10 +20,32 @@ const App: React.FC = () => {
   });
   
   const previewRef = useRef<HTMLDivElement>(null);
+  const handleExportRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     localStorage.setItem(THEMES_STORAGE_KEY, JSON.stringify(savedThemes));
   }, [savedThemes]);
+
+  // Listen for postMessage from CLI script
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'glowsnap_image' && event.data?.imageData) {
+        setSettings(prev => ({
+          ...prev,
+          imageData: event.data.imageData,
+          mode: 'image'
+        }));
+
+        // Trigger export after rendering
+        setTimeout(() => {
+          handleExportRef.current?.();
+        }, 800);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const handleExport = useCallback(async () => {
     if (!previewRef.current) return;
@@ -58,15 +80,18 @@ const App: React.FC = () => {
     }
   }, [previewRef]);
 
+  // Store handleExport in ref for postMessage access
+  handleExportRef.current = handleExport;
+
   const executeCommand = useCallback((cmd: string): string | null => {
     const parts = cmd.trim().split(/\s+/);
     const action = parts[0].toLowerCase();
 
     try {
-      if (action === 'help') return "Commands: config [--p val] [--r val] [--f val] [--a val] [--s hex] [--e hex] [--c hex] [--cr val] [--cx val] [--cy val], theme [dark|light|obsidian], export, reset";
+      if (action === 'help') return "Commands: config [--p val] [--r val] [--f val] [--a val] [--s hex] [--e hex] [--c hex] [--cr val] [--cx val] [--cy val] [--mode markdown|image], theme [dark|light|obsidian], export, reset";
       if (action === 'reset') { setSettings(DEFAULT_SETTINGS); return null; }
       if (action === 'export') { handleExport(); return null; }
-      
+
       if (action === 'config' || action === 'set') {
         const updates: Partial<AppSettings> = {};
         for (let i = 1; i < parts.length; i += 2) {
@@ -78,6 +103,11 @@ const App: React.FC = () => {
             case '--r': updates.borderRadius = parseInt(val); break;
             case '--f': updates.fontSize = parseInt(val); break;
             case '--a': updates.gradientAngle = parseInt(val); break;
+            case '--mode':
+              if (val === 'markdown' || val === 'image') {
+                updates.mode = val;
+              }
+              break;
             case '--s': updates.gradientStart = val.startsWith('#') ? val : `#${val}`; break;
             case '--e': updates.gradientEnd = val.startsWith('#') ? val : `#${val}`; break;
             case '--c': updates.gradientColorC = val.startsWith('#') ? val : `#${val}`; updates.useColorC = true; break;
@@ -106,8 +136,20 @@ const App: React.FC = () => {
     const updates: Partial<AppSettings> = {};
     const getParam = (long: string, short: string) => params.get(long) || params.get(short);
 
+    // Check for CLI mode - use localStorage for image
+    const isCliMode = params.get('_cli') === '1';
+    if (isCliMode) {
+      const cliImage = localStorage.getItem('glowsnap_cli_image');
+      if (cliImage) {
+        updates.imageData = cliImage;
+        updates.mode = 'image';
+        // Clear after use
+        localStorage.removeItem('glowsnap_cli_image');
+      }
+    }
+
     if (params.has('content')) {
-      try { 
+      try {
         updates.content = decodeURIComponent(escape(atob(params.get('content')!)));
       } catch (e) {
         updates.content = params.get('content')!;
@@ -118,6 +160,23 @@ const App: React.FC = () => {
     const r = getParam('radius', 'r'); if (r) updates.borderRadius = parseInt(r);
     const f = getParam('fontSize', 'f'); if (f) updates.fontSize = parseInt(f);
     const a = getParam('angle', 'a'); if (a) updates.gradientAngle = parseInt(a);
+    const m = getParam('mode', 'm');
+    if (m && (m === 'markdown' || m === 'image')) {
+      updates.mode = m;
+    }
+
+    // Handle image parameter (URL-encoded data URL)
+    const imageParam = getParam('image', 'image');
+    if (imageParam) {
+      try {
+        updates.imageData = decodeURIComponent(imageParam);
+        // If image is provided, ensure mode is set to image
+        updates.mode = 'image';
+      } catch (e) {
+        console.error('Failed to decode image parameter', e);
+      }
+    }
+
     const s = getParam('start', 's'); if (s) updates.gradientStart = s.startsWith('#') ? s : `#${s}`;
     const e = getParam('end', 'e'); if (e) updates.gradientEnd = e.startsWith('#') ? e : `#${e}`;
     const c = getParam('colorc', 'c'); if (c) {
