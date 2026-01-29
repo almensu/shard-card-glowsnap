@@ -1,8 +1,11 @@
 
 export type GradientType = 'linear' | 'radial' | 'conic';
+export type ContentMode = 'markdown' | 'image';
 
 export interface AppSettings {
+  mode: ContentMode;
   content: string;
+  imageData?: string; // Base64 data URL for image mode
   padding: number;
   borderWidth: number;
   borderRadius: number;
@@ -28,6 +31,7 @@ export interface SavedTheme {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  mode: 'markdown',
   content: "### 🚀 GLOWSNAP\n\nA high-performance **Markdown Beautifier**.\n\n- Paste your code or text\n- Customize the gradient\n- Export as PNG\n\n```javascript\nconsole.log('Hello World');\n```",
   padding: 60,
   borderWidth: 1,
